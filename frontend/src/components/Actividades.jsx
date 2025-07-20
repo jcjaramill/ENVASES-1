@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+import { useWebSocket } from "../hooks/useWebScket";
+import toast from "react-hot-toast";
 
 export default function Actividades() {
+  const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
   const [ordenes, setOrdenes] = useState([]);
   const [filtros, setFiltros] = useState({
     status: "",
@@ -10,24 +15,10 @@ export default function Actividades() {
   });
 
   // 🔄 Obtener datos
-    useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8002/ws/pendientes");
-
-    socket.onopen = () => console.log("Conexión WebSocket abierta");
-    socket.onmessage = (event) => {
-        try {
-        const nuevosDatos = JSON.parse(event.data);
-        setOrdenes(nuevosDatos);
-        } catch (err) {
-        console.error("Error al procesar WebSocket:", err);
-        }
-    };
-    socket.onerror = (err) => console.error("WebSocket error:", err);
-    socket.onclose = () => console.log("Conexión WebSocket cerrada");
-
-    return () => socket.close(); // solo cierra cuando el componente se desmonta
-    }, []);
-    
+  useWebSocket({
+      url: "ws://192.168.1.86:8002/ws/pendientes",
+      onMessage: (data) => setOrdenes(data),
+  });    
 
   // 🎛️ Opciones únicas para filtros
   const tecnicos = [...new Set(ordenes.map(o => o.tecnico))];
@@ -46,29 +37,45 @@ export default function Actividades() {
     (!filtros.maquina_equipo || o.maquina_equipo === filtros.maquina_equipo)
   );
 
+  const totalActividades = ordenesFiltradas.length;
+
   // 🔁 Cambiar estado de orden
   const actualizarEstado = async (id, nuevoEstado) => {
+    setCambiandoEstadoId(id);
+
     try {
-      await fetch(`http://localhost:8002/pendientes/${id}`, {
+      const timestampActual = new Date().toISOString();
+
+      await fetch(`http://192.168.1.86:8002/pendientes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nuevoEstado }),
+        body: JSON.stringify({
+          status: nuevoEstado,
+          timestamp: timestampActual
+        }),
       });
 
       setOrdenes((prev) =>
         prev.map((orden) =>
-          orden.id === id ? { ...orden, status: nuevoEstado } : orden
+          orden.id === id
+            ? { ...orden, status: nuevoEstado, timestamp: timestampActual }
+            : orden
         )
       );
+      toast.success(`Actividad actualizada a "${nuevoEstado}"`);
+
     } catch (error) {
       console.error("Error al actualizar estado:", error);
     }
+
+    setCambiandoEstadoId(null);
   };
+
 
   // 🗑️ Eliminar orden completada
   const eliminarOrden = async (id) => {
     try {
-      await fetch(`http://localhost:8002/pendientes/${id}`, {
+      await fetch(`http://192.168.1.86:8002/pendientes/${id}`, {
         method: "DELETE",
       });
       setOrdenes((prev) => prev.filter((orden) => orden.id !== id));
@@ -103,29 +110,42 @@ export default function Actividades() {
         </select>
       </div>
 
+      {/* 📋 Totalizador */}
+      <div className="mb-4 text-right text-gray-700 text-sm font-medium">
+        Total de actividades: <span className="text-blue-600 font-bold">{totalActividades}</span>
+      </div>
+      
       {/* 📋 Actividades */}
       {ordenesFiltradas.map((orden) => (
         <div key={orden.id} className="bg-white p-4 rounded shadow mb-5 border">
           <h3 className="text-lg font-semibold text-gray-700 mb-2">{orden.trabajo}</h3>
+          <p className="text-sm"><strong>Asignado:</strong> {dayjs(orden.timestamp).locale("es").format("D MMM YYYY HH:mm")}</p>
           <p className="text-sm"><strong>Máquina:</strong> {orden.maquina_equipo}</p>
           <p className="text-sm"><strong>Línea:</strong> {orden.linea}</p>
           <p className="text-sm"><strong>Técnico:</strong> {orden.tecnico}</p>
           <p className="text-sm"><strong>Estado:</strong> <span className="font-bold text-blue-600">{orden.status}</span></p>
 
           <div className="flex gap-2 mt-4 flex-wrap">
-            {["pendiente", "en_proceso", "completado"].map((estado) => (
-              <button
-                key={estado}
-                onClick={() => actualizarEstado(orden.id, estado)}
-                className={`px-3 py-1 text-sm rounded transition ${
-                  orden.status === estado
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 hover:bg-gray-300"
-                }`}
-              >
-                Marcar como {estado}
-              </button>
-            ))}
+          {["pendiente", "en_proceso", "completado"].map((estado) => (
+          <button
+            key={estado}
+            onClick={() => actualizarEstado(orden.id, estado)}
+            className={`px-3 py-1 text-sm rounded transition flex items-center justify-center gap-2 min-w-[130px] ${
+              orden.status === estado
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+            disabled={cambiandoEstadoId === orden.id}
+          >
+            {cambiandoEstadoId === orden.id ? (
+              <span className="w-4 h-4 border-2 border-t-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+            ) : (
+              `Marcar como ${estado}`
+            )}
+          </button>
+
+        ))}
+
             {orden.status === "completado" && (
               <button
                 onClick={() => eliminarOrden(orden.id)}

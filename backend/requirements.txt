@@ -5,3 +5,4 @@ websockets
 wsproto
 pymongo
 python-dotenv
+python-jose passlib[bcrypt]

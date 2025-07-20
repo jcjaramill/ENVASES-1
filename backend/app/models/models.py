@@ -25,3 +25,7 @@ class PrediccionInput(BaseModel):
     linea: str
     dia_semana: int
     turno: int
+
+class StatusUpdate(BaseModel):
+    status: str
+    timestamp: str

@@ -48,7 +48,7 @@ export function useFormActions() {
     const postData = { ...formData, timestamp };
 
     try {
-      const response = await fetch("http://localhost:8002/pendientes", {
+      const response = await fetch("http://192.168.1.86:8002/pendientes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(postData),
