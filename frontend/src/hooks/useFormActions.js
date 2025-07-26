@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { maquinasPorLinea } from "../data/opciones";
 
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 export function useFormActions() {
   const [formData, setFormData] = useState({
     trabajo: "",
@@ -14,6 +16,8 @@ export function useFormActions() {
 
   const [maquinasDisponibles, setMaquinasDisponibles] = useState([]);
   const [errors, setErrors] = useState({});
+  const [completadas, setCompletadas] = useState([]);
+  const [mostrarLista, setMostrarLista] = useState(false);
 
   useEffect(() => {
     setMaquinasDisponibles(maquinasPorLinea[formData.linea] || []);
@@ -48,7 +52,7 @@ export function useFormActions() {
     const postData = { ...formData, timestamp };
 
     try {
-      const response = await fetch("http://192.168.1.86:8002/pendientes", {
+      const response = await fetch(`${BASE_URL}/pendientes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(postData),
@@ -68,5 +72,44 @@ export function useFormActions() {
     }
   };
 
-  return { formData, handleChange, handleSubmit, maquinasDisponibles, errors, inputClasses: (f) => `form-input ${errors[f] ? "border-red-500" : ""}` };
+
+  const cargarCompletadas = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/ordenes_completadas`);
+      const data = await res.json();
+      console.log(data)
+      setCompletadas(data);
+      setMostrarLista(true);
+    } catch (err) {
+      toast.error("No se pudieron cargar las órdenes completadas");
+    }
+  };
+
+  const eliminarOrden = async (id) => {
+    try {
+      await fetch(`${BASE_URL}/ordenes_completadas/${id}`, {
+        method: "DELETE",
+      });
+
+      setCompletadas((prev) => prev.filter((o) => o.id !== id));
+      toast.success("Orden eliminada y archivada");
+    } catch (err) {
+      toast.error("Error al eliminar la orden");
+    }
+  };
+
+
+  return { 
+    formData, 
+    handleChange, 
+    handleSubmit,
+     maquinasDisponibles, 
+     errors,
+     completadas,
+     setMostrarLista,
+     mostrarLista,
+     cargarCompletadas,
+     eliminarOrden, 
+     inputClasses: (f) => `form-input ${errors[f] ? "border-red-500" : ""}` 
+    };
 }

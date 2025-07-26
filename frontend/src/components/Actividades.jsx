@@ -4,6 +4,9 @@ import "dayjs/locale/es";
 import { useWebSocket } from "../hooks/useWebScket";
 import toast from "react-hot-toast";
 
+const WS_URL = import.meta.env.VITE_WS_URL;
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 export default function Actividades() {
   const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
   const [ordenes, setOrdenes] = useState([]);
@@ -16,7 +19,7 @@ export default function Actividades() {
 
   // 🔄 Obtener datos
   useWebSocket({
-      url: "ws://192.168.1.86:8002/ws/pendientes",
+      url: `${WS_URL}/ws/pendientes`,
       onMessage: (data) => setOrdenes(data),
   });    
 
@@ -46,7 +49,7 @@ export default function Actividades() {
     try {
       const timestampActual = new Date().toISOString();
 
-      await fetch(`http://192.168.1.86:8002/pendientes/${id}`, {
+      await fetch(`${BASE_URL}/pendientes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -75,7 +78,7 @@ export default function Actividades() {
   // 🗑️ Eliminar orden completada
   const eliminarOrden = async (id) => {
     try {
-      await fetch(`http://192.168.1.86:8002/pendientes/${id}`, {
+      await fetch(`${BASE_URL}/pendientes/${id}`, {
         method: "DELETE",
       });
       setOrdenes((prev) => prev.filter((orden) => orden.id !== id));

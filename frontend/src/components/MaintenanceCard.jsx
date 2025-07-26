@@ -9,6 +9,12 @@ const statusStyles = {
   completado: "border-green-500 bg-green-900 text-green-200",
 };
 
+/*const statusStyles = {
+  pendiente: "border-red-500 bg-red-100 text-red-800",
+  en_proceso: "border-yellow-500 bg-yellow-100 text-yellow-800",
+  completado: "border-green-500 bg-green-100 text-green-800",
+};*/
+
 export default function MaintenanceCard({ actividad }) {
   const style = statusStyles[actividad.status] || "border-gray-500 bg-gray-800 text-white";
 
@@ -17,7 +23,7 @@ export default function MaintenanceCard({ actividad }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`border-l-4 p-4 rounded shadow-md ${style}`}
+      className={`border-l-6 p-4 rounded shadow-md ${style}`}
     >
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-semibold">{actividad.trabajo}</h3>

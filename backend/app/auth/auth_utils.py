@@ -1,22 +1,27 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from auth_utils import crear_token, verificar_contrasena, encriptar_contrasena
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
-router = APIRouter()
+SECRET_KEY = "tu_clave_secreta"
+ALGORITHM = "HS256"
+EXPIRATION_MINUTES = 60
 
-# ⚠️ Para demo: usuario hardcodeado
-USUARIO_DB = {
-    "jjaramillo": encriptar_contrasena("123456")
-}
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-class Credenciales(BaseModel):
-    usuario: str
-    password: str
+def crear_token(datos: dict):
+    datos_copy = datos.copy()
+    datos_copy["exp"] = datetime.utcnow() + timedelta(minutes=EXPIRATION_MINUTES)
+    return jwt.encode(datos_copy, SECRET_KEY, algorithm=ALGORITHM)
 
-@router.post("/login")
-def login(data: Credenciales):
-    if data.usuario not in USUARIO_DB or not verificar_contrasena(data.password, USUARIO_DB[data.usuario]):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+def verificar_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload  # 👈 devuelve todo el payload (no solo "usuario")
+    except JWTError:
+        return None
 
-    token = crear_token({"usuario": data.usuario})
-    return {"access_token": token}
+def encriptar_contrasena(password: str):
+    return pwd_context.hash(password)
+
+def verificar_contrasena(password: str, hashed: str):
+    return pwd_context.verify(password, hashed)

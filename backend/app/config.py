@@ -1,12 +1,17 @@
 # config.py
-import os
+from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
+# Cargar archivo .env
 load_dotenv()
 
-class Settings:
-    MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/mantencion?authSource=admin")
-    DB_NAME = os.getenv("DB_NAME", "mantencion")
-    ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+class Settings(BaseSettings):
+    MONGO_URL: str
+    DB_NAME: str
+    PORT: int
+
+    class Config:
+        env_file = ".env"
 
 settings = Settings()
+

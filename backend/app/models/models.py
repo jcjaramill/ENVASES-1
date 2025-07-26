@@ -29,3 +29,9 @@ class PrediccionInput(BaseModel):
 class StatusUpdate(BaseModel):
     status: str
     timestamp: str
+
+class Credenciales(BaseModel):
+    usuario: str
+    password: str
+    rol: Optional[str] = None
+
