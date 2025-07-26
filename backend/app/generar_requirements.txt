@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+scikit-learn
+websockets
+wsproto
+pymongo
+python-dotenv
+
