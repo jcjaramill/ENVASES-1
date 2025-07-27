@@ -1,8 +1,6 @@
-fastapi
-uvicorn
-scikit-learn
-websockets
-wsproto
-pymongo
-python-dotenv
+pip freeze > requirements.txt
+
+docker compose up --build
+
+docker compose down -v
 

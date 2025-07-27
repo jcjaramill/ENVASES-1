@@ -21,6 +21,9 @@ services:
       - "3000:80"
     depends_on:
       - backend
+    environment:
+      - VITE_API_URL=https://8002-dobleq3-envases-2ebwwqt51tn.ws-us120.gitpod.io
+      - VITE_WS_URL=wss://8002-dobleq3-envases-2ebwwqt51tn.ws-us120.gitpod.io
 
   mongo:
     image: mongo:6
@@ -35,16 +38,18 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: dobleq3
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.4.2
     container_name: grafana
     ports:
-      - "3001:3000"  # Puedes cambiar el puerto externo si lo deseas
+      - "3001:3000"
     volumes:
-      - grafana_data:/var/lib/grafana  # Persistencia de datos
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=golioth-websocket-datasource
     restart: unless-stopped
+
 volumes:
   mongo_data:
-  grafana_data:
+  grafana-storage:

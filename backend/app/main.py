@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import pendientes, problemas, prediccion, ws_pendientes, pendientes_delete, auth, vistas, ordenes_completadas
+from routers import pendientes, problemas, prediccion, ws_pendientes, pendientes_delete, ordenes_completadas
 from config import settings
 import uvicorn
 
@@ -16,14 +16,12 @@ app.add_middleware(
 )
 
 # Incluir rutas organizadas por módulos
-app.include_router(auth.router)
 app.include_router(pendientes.router)
 app.include_router(problemas.router)
 app.include_router(prediccion.router)
 #app.include_router(pendientes_by_id.router)
 app.include_router(pendientes_delete.router)
 app.include_router(ws_pendientes.router)
-app.include_router(vistas.router)
 app.include_router(ordenes_completadas.router)
 
 

@@ -123,7 +123,7 @@ async def eliminar_pendiente(id: str):
 
 
 
-@router.websocket("/ws/grafana")
+"""@router.websocket("/ws/grafana")
 async def websocket_grafana(websocket: WebSocket):
     await websocket.accept()
     clientes_websocket.append(websocket)
@@ -132,4 +132,19 @@ async def websocket_grafana(websocket: WebSocket):
         while True:
             await asyncio.sleep(1)  # Mantener la conexión viva sin emitir nada
     except WebSocketDisconnect:
+        clientes_websocket.remove(websocket)"""
+
+@router.websocket("/ws/grafana")
+async def websocket_grafana(websocket: WebSocket):
+    await websocket.accept()
+    clientes_websocket.append(websocket)
+
+    print("⚡ Conexión WebSocket aceptada")
+
+    try:
+        while True:
+            await asyncio.sleep(1)  # Mantener la conexión viva
+    except WebSocketDisconnect:
+        print("🔌 Cliente desconectado")
         clientes_websocket.remove(websocket)
+
