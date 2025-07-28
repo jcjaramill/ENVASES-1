@@ -51,6 +51,35 @@ async def emitir_payload(payload):
         except Exception:
             clientes_websocket.remove(ws)
 
+def obtener_pendientes():
+    pendientes = list(db["trabajos"].find({}, {"_id": 0}))
+    return pendientes
+
+def obtener_payload_pendientes():
+    payload = generar_payload_estadistico()
+
+    payload["trabajos_completados_totales"] = db["trabajos_completados"].count_documents({})
+
+    hoy_str = datetime.utcnow().date().isoformat()
+    payload["trabajos_completados_hoy"] = db["trabajos_completados"].count_documents({
+        "fecha_completado": {"$regex": f"^{hoy_str}"}
+    })
+
+    cursor = db["trabajos_completados"].aggregate([
+        {"$group": {"_id": "$tecnico", "total": {"$sum": 1}}},
+        {"$sort": {"total": -1}},
+        {"$limit": 1}
+    ])
+    top_tecnico = next(cursor, {"_id": None, "total": 0})
+
+    payload["top_tecnico_completador"] = {
+        "nombre": top_tecnico["_id"],
+        "cantidad": top_tecnico["total"]
+    }
+
+    return payload
+
+
 @router.post("/pendientes")
 async def registrar_produccion(data: Pendientes):
     db["trabajos"].insert_one(data.dict())
@@ -60,6 +89,7 @@ async def registrar_produccion(data: Pendientes):
     await emitir_payload(payload)
 
     return {"mensaje": "Orden registrada correctamente"}
+
 
 @router.patch("/pendientes/{id}")
 async def actualizar_estado(id: str, datos: StatusUpdate):
@@ -72,7 +102,28 @@ async def actualizar_estado(id: str, datos: StatusUpdate):
         raise HTTPException(status_code=404, detail="Orden no encontrada")
 
     payload = generar_payload_estadistico(timestamp_ref=datos.timestamp)
-    print(payload)
+
+    # 🧮 Agregados estadísticos al payload
+    payload["trabajos_completados_totales"] = db["trabajos_completados"].count_documents({})
+    
+    hoy_str = datetime.utcnow().date().isoformat()
+    payload["trabajos_completados_hoy"] = db["trabajos_completados"].count_documents({
+        "fecha_completado": {"$regex": f"^{hoy_str}"}
+    })
+
+    cursor = db["trabajos_completados"].aggregate([
+        {"$group": {"_id": "$tecnico", "total": {"$sum": 1}}},
+        {"$sort": {"total": -1}},
+        {"$limit": 1}
+    ])
+    top_tecnico = next(cursor, {"_id": None, "total": 0})
+    
+    payload["top_tecnico_completador"] = {
+        "nombre": top_tecnico["_id"],
+        "cantidad": top_tecnico["total"]
+    }
+
+    # 📌 Info específica del patch
     payload["estado_actualizado"] = datos.status
     payload["id_modificado"] = id
 
@@ -80,13 +131,12 @@ async def actualizar_estado(id: str, datos: StatusUpdate):
 
     return {"mensaje": "Estado actualizado correctamente"}
 
+
 @router.get("/pendientes")
 def obtener_produccion():
-    payload = generar_payload_estadistico()
-    return {
-        "ordenes": list(db["trabajos"].find({}, {"_id": 0})),
-        "resumen_estados": payload["resumen_estados"]
-    }
+    payload = obtener_payload_pendientes()
+    return payload
+
 
 
 @router.delete("/pendientes/{id}")
@@ -112,9 +162,14 @@ async def eliminar_pendiente(id: str):
             raise HTTPException(status_code=404, detail="No se pudo eliminar la orden")
         
         payload = generar_payload_estadistico(timestamp_ref=None)
-        print(payload)
 
+        # 🔢 Agregamos cantidad total de trabajos completados
+        cantidad_completados = db["trabajos_completados"].count_documents({})
+        payload["trabajos_completados_totales"] = cantidad_completados
+
+        print(payload)
         await emitir_payload(payload)
+
 
         return {"mensaje": "Orden eliminada y archivada correctamente"}
 
@@ -123,28 +178,18 @@ async def eliminar_pendiente(id: str):
 
 
 
-"""@router.websocket("/ws/grafana")
-async def websocket_grafana(websocket: WebSocket):
-    await websocket.accept()
-    clientes_websocket.append(websocket)
-
-    try:
-        while True:
-            await asyncio.sleep(1)  # Mantener la conexión viva sin emitir nada
-    except WebSocketDisconnect:
-        clientes_websocket.remove(websocket)"""
-
 @router.websocket("/ws/grafana")
 async def websocket_grafana(websocket: WebSocket):
     await websocket.accept()
     clientes_websocket.append(websocket)
 
-    print("⚡ Conexión WebSocket aceptada")
-
     try:
-        while True:
-            await asyncio.sleep(1)  # Mantener la conexión viva
-    except WebSocketDisconnect:
-        print("🔌 Cliente desconectado")
-        clientes_websocket.remove(websocket)
+        # ⏱️ Enviar estado inicial equivalente al GET /pendientes
+        payload_inicial = obtener_payload_pendientes()
+        await websocket.send_text(json.dumps(payload_inicial))
 
+        # 🔁 Mantener conexión viva
+        while True:
+            await asyncio.sleep(1)
+    except WebSocketDisconnect:
+        clientes_websocket.remove(websocket)
