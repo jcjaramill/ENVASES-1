@@ -1,29 +1,46 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { maquinasPorLinea } from "../data/opciones";
+import { productosPorLinea } from "../data/opciones";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export function useFormActions() {
   const [formData, setFormData] = useState({
-    trabajo: "",
-    maquina_equipo: "",
+    timestamp: "",
+    producto: "",
+    siguiente_producto: "",
+    formato: "",
+    siguiente_formato: "",
     linea: "",
     status: "",
-    tecnico: "",
-    observaciones: "",
+    responsable: "",
+    cambio_formato: false,
+    produccion: false,
+    observaciones: ""
   });
 
-  const [maquinasDisponibles, setMaquinasDisponibles] = useState([]);
+  const [productosDisponibles, setProductosDisponibles] = useState([]);
+  const [formatosDisponibles, setFormatosDisponibles] = useState([]);
+  const [formatosSiguienteDisponibles, setFormatosSiguienteDisponibles] = useState([]);
   const [errors, setErrors] = useState({});
   const [completadas, setCompletadas] = useState([]);
   const [mostrarLista, setMostrarLista] = useState(false);
 
+  // 🔄 Cargar productos al seleccionar línea
   useEffect(() => {
-    setMaquinasDisponibles(maquinasPorLinea[formData.linea] || []);
-    setFormData(prev => ({ ...prev, maquina_equipo: "" }));
+    const productos = productosPorLinea[formData.linea] || [];
+    setProductosDisponibles(productos);
+    setFormatosDisponibles([]);
+    setFormData((prev) => ({
+      ...prev,
+      producto: "",
+      formato: "",
+      siguiente_producto: "",
+      siguiente_formato: ""
+    }));
   }, [formData.linea]);
 
+  // ✅ Validación
   const validateForm = () => {
     const newErrors = {};
     for (const key in formData) {
@@ -35,11 +52,60 @@ export function useFormActions() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // 🖊️ Manejadores
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    const exclusividad = {
+      cambio_formato: "produccion",
+      produccion: "cambio_formato",
+    };
+    setFormData((prev) => ({
+      ...prev,
+      [name]: checked,
+      [exclusividad[name]]: checked ? false : prev[exclusividad[name]],
+    }));
+  };
+
+  const handleProductoChange = (e) => {
+    const selectedId = e.target.value;
+    const producto = productosDisponibles.find(p => p.id === selectedId);
+    setFormData((prev) => ({
+      ...prev,
+      producto: selectedId,
+      formato: "",
+      siguiente_producto: "", // opcional: puedes predefinir el siguiente
+      siguiente_formato: ""
+    }));
+    setFormatosDisponibles(producto?.formatos || []);
+  };
+
+  const handleFormatoChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      formato: e.target.value
+    }));
+  };
+
+  const handleSiguienteProductoChange = (e) => {
+    const selectedId = e.target.value;
+    const producto = productosDisponibles.find(p => p.id === selectedId);
+
+    setFormData((prev) => ({
+      ...prev,
+      siguiente_producto: selectedId,
+      siguiente_formato: ""
+    }));
+
+    setFormatosSiguienteDisponibles(producto?.formatos || []);
+  };
+  
+
+  // 🚀 Envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
     const timestamp = new Date().toISOString();
@@ -48,7 +114,7 @@ export function useFormActions() {
       return;
     }
 
-    const sending = toast.loading("Registrando orden...");
+    const sending = toast.loading("Registrando estado...");
     const postData = { ...formData, timestamp };
 
     try {
@@ -59,12 +125,24 @@ export function useFormActions() {
       });
 
       if (response.ok) {
-        toast.success("Orden registrada con éxito", { id: sending });
-        setFormData({ trabajo: "", maquina_equipo: "", linea: "", status: "", tecnico: "", observaciones: "" });
-        setMaquinasDisponibles([]);
+        toast.success("Estado registrado con éxito", { id: sending });
+        setFormData({
+          producto: "",
+          siguiente_producto: "",
+          formato: "",
+          siguiente_formato: "",
+          linea: "",
+          status: "",
+          responsable: "",
+          cambio_formato: false,
+          produccion: false,
+          observaciones: ""
+        });
+        setProductosDisponibles([]);
+        setFormatosDisponibles([]);
         setErrors({});
       } else {
-        toast.error("Error al registrar la orden", { id: sending });
+        toast.error("Error al registrar el estado", { id: sending });
       }
     } catch (err) {
       toast.dismiss(sending);
@@ -72,12 +150,11 @@ export function useFormActions() {
     }
   };
 
-
+  // 📦 Cargar completadas
   const cargarCompletadas = async () => {
     try {
       const res = await fetch(`${BASE_URL}/ordenes_completadas`);
       const data = await res.json();
-      console.log(data)
       setCompletadas(data);
       setMostrarLista(true);
     } catch (err) {
@@ -85,12 +162,12 @@ export function useFormActions() {
     }
   };
 
+  // 🗑️ Eliminar orden
   const eliminarOrden = async (id) => {
     try {
       await fetch(`${BASE_URL}/ordenes_completadas/${id}`, {
         method: "DELETE",
       });
-
       setCompletadas((prev) => prev.filter((o) => o.id !== id));
       toast.success("Orden eliminada y archivada");
     } catch (err) {
@@ -98,18 +175,23 @@ export function useFormActions() {
     }
   };
 
-
-  return { 
-    formData, 
-    handleChange, 
+  return {
+    formData,
+    handleChange,
+    handleCheckboxChange,
+    handleProductoChange,
+    handleFormatoChange,
+    handleSiguienteProductoChange,
+    formatosSiguienteDisponibles,
     handleSubmit,
-     maquinasDisponibles, 
-     errors,
-     completadas,
-     setMostrarLista,
-     mostrarLista,
-     cargarCompletadas,
-     eliminarOrden, 
-     inputClasses: (f) => `form-input ${errors[f] ? "border-red-500" : ""}` 
-    };
+    productosDisponibles,
+    formatosDisponibles,
+    errors,
+    completadas,
+    setMostrarLista,
+    mostrarLista,
+    cargarCompletadas,
+    eliminarOrden,
+    inputClasses: (f) => `form-input ${errors[f] ? "border-red-500" : ""}`
+  };
 }

@@ -3,13 +3,17 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-class Pendientes(BaseModel):
+class Productos(BaseModel):
     timestamp: str
-    trabajo: str
-    maquina_equipo: str
+    producto: str
+    siguiente_producto: str
+    formato: str
+    siguiente_formato: str
     linea: str
     status: str
-    tecnico: str
+    responsable: str
+    cambio_formato: bool
+    produccion: bool
     observaciones: Optional[str] = None
 
 class Problema(BaseModel):
