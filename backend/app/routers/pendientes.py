@@ -96,31 +96,50 @@ async def emitir_payload(payload):
         except Exception:
             clientes_websocket.remove(ws)
 
+<<<<<<< HEAD
+=======
+def obtener_pendientes():
+    pendientes = list(db["trabajos"].find({}, {"_id": 0}))
+    return pendientes
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
 
 def obtener_payload_pendientes():
     payload = generar_payload_estadistico()
 
+<<<<<<< HEAD
     # Total de trabajos completados
     payload["trabajos_completados_totales"] = db["trabajos_completados"].count_documents({})
 
     # Trabajos completados hoy
+=======
+    payload["trabajos_completados_totales"] = db["trabajos_completados"].count_documents({})
+
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
     hoy_str = datetime.utcnow().date().isoformat()
     payload["trabajos_completados_hoy"] = db["trabajos_completados"].count_documents({
         "fecha_completado": {"$regex": f"^{hoy_str}"}
     })
 
+<<<<<<< HEAD
     # Técnico con más trabajos completados
+=======
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
     cursor = db["trabajos_completados"].aggregate([
         {"$group": {"_id": "$tecnico", "total": {"$sum": 1}}},
         {"$sort": {"total": -1}},
         {"$limit": 1}
     ])
     top_tecnico = next(cursor, {"_id": None, "total": 0})
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
     payload["top_tecnico_completador"] = {
         "nombre": top_tecnico["_id"],
         "cantidad": top_tecnico["total"]
     }
 
+<<<<<<< HEAD
     # Último trabajo completado
     ultimo_trabajo = db["trabajos_completados"].find_one(
         {},
@@ -137,6 +156,8 @@ def obtener_payload_pendientes():
     )
     print(payload)
 
+=======
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
     return payload
 
 
@@ -220,17 +241,31 @@ async def eliminar_pendiente(id: str):
         resultado = db["trabajos"].delete_one({"_id": ObjectId(id)})
         if resultado.deleted_count == 0:
             raise HTTPException(status_code=404, detail="No se pudo eliminar la orden")
+<<<<<<< HEAD
 
         # 🔄 Generar payload estadístico completo
         payload = obtener_payload_pendientes()
+=======
+        
+        payload = generar_payload_estadistico(timestamp_ref=None)
+
+        # 🔢 Agregamos cantidad total de trabajos completados
+        cantidad_completados = db["trabajos_completados"].count_documents({})
+        payload["trabajos_completados_totales"] = cantidad_completados
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
 
         print(payload)
         await emitir_payload(payload)
 
+<<<<<<< HEAD
         return {
             "mensaje": "Orden eliminada y archivada correctamente",
             "payload": payload
         }
+=======
+
+        return {"mensaje": "Orden eliminada y archivada correctamente"}
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -248,6 +283,7 @@ async def websocket_grafana(websocket: WebSocket):
         await websocket.send_text(json.dumps(payload_inicial))
 
         # 🔁 Mantener conexión viva
+<<<<<<< HEAD
         while True:
             await asyncio.sleep(1)
     except WebSocketDisconnect:
@@ -259,7 +295,13 @@ async def websocket_grafana(websocket: WebSocket):
     clientes_websocket.append(websocket)
 
     try:
+=======
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3
         while True:
-            await asyncio.sleep(1)  # Mantener la conexión viva sin emitir nada
+            await asyncio.sleep(1)
     except WebSocketDisconnect:
+<<<<<<< HEAD
         clientes_websocket.remove(websocket)"""
+=======
+        clientes_websocket.remove(websocket)
+>>>>>>> 2b2fe4b9008dee53013a2e665887d64ea29af9f3

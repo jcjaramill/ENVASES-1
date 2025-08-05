@@ -1,0 +1,55 @@
+
+services:
+  backend:
+    build: ./backend
+    container_name: backend_app
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend/app:/app
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URL=mongodb://mongo_user:dobleq3@mongo:27017/mantencion?authSource=admin
+      - DB_NAME=mantencion
+      - PORT=8002
+
+  frontend:
+    build: ./frontend
+    container_name: frontend_app
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=https://8002-dobleq3-envases-2ebwwqt51tn.ws-us120.gitpod.io
+      - VITE_WS_URL=wss://8002-dobleq3-envases-2ebwwqt51tn.ws-us120.gitpod.io
+
+  mongo:
+    image: mongo:6
+    container_name: mongo_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_user
+      MONGO_INITDB_ROOT_PASSWORD: dobleq3
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+    environment:
+      - GF_INSTALL_PLUGINS=golioth-websocket-datasource
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  grafana-storage:

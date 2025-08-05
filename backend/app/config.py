@@ -8,7 +8,7 @@ load_dotenv()
 class Settings(BaseSettings):
     MONGO_URL: str
     DB_NAME: str
-    PORT: int
+    PORT: int = 8002
 
     class Config:
         env_file = ".env"

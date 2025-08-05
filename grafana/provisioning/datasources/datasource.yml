@@ -1,0 +1,11 @@
+apiVersion: 1
+
+datasources:
+  - name: Golioth WebSocket
+    type: golioth-websocket-datasource
+    access: proxy
+    uid: golioth-ws
+    isDefault: false
+    editable: true
+    jsonData:
+      url: "wss://8002-dobleq3-envases-2ebwwqt51tn.ws-us120.gitpod.io/ws/grafana"  # Cambia si usas wss o diferente nombre del backend
